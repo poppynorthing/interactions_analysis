@@ -15,6 +15,8 @@ visits_counted <- na.omit(visits)
 library(tidyverse)
 library(lme4)
 library(ggpattern)
+library(egg)
+library(patchwork)
 
 #getting summary data about inflorescences
 
@@ -60,17 +62,34 @@ library(ggpattern)
   #glm with quasipoisson family
   visits_glm <- glm(flower_visits ~ flower_color, data = visits_counted_models, family = quasi)
   summary(visits_glm)
-
-#Data visualization
+  
+  visits_glm_aov <- aov(visits_glm)
+  TukeyHSD(visits_glm_aov)
+  
+  #normalizing data for flower color and then doing glm
+  visits_counted_models_norm <- mutate(visits_counted_models, visits_norm = case_when(flower_color == "both" ~ flower_visits/17, flower_color == "yellow" ~ flower_visits/4, flower_color == "pink" ~ flower_visits/13))
+  visits_counted_models_norm
+  
+  visits_norm_glm <- glm(visits_norm ~ flower_color, data = visits_counted_models_norm, family = quasi)
+  summary(visits_norm_glm)
+  
+  #Data visualization
   #Total visits
-  ggplot(data = visits, aes(x = flower_color, fill = flower_color)) + 
-    geom_bar(fill = c("lightpink", "lightpink", "lightyellow")) +
+  p1 <- ggplot(data = visits, aes(x = flower_color, fill = flower_color)) + 
+    geom_bar(fill = c("sandybrown", "lightpink", "lightyellow")) +
+    theme_article(base_size = 18) +
     xlab("Flower Color") +
     ylab("Number of Visits")
 
   #Visits with count data
-  ggplot(data = visits_counted, aes(x = flower_color, y = flower_visits, fill = flower_color)) +
-    geom_boxplot(fill = c("lightpink", "lightpink", "lightyellow")) +
+  p2 <- ggplot(data = visits_counted_models, aes(x = flower_color, y = flower_visits, fill = flower_color)) +
+    geom_boxplot(fill = c("sandybrown", "lightpink", "lightyellow")) +
+    geom_jitter(color = "black", alpha = 0.8, size = 0.4) +
+    theme_article(base_size = 18) +
+    theme(legend.position = "none") +
     xlab("Flower Color") +
-    ylab("Number of Flower Visits per Inflorescence")
+    ylab("Flower Visits per Inflorescence")
+  
+  final_plot <- p1 + p2
+  final_plot + plot_annotation(tag_levels = "A")
   
